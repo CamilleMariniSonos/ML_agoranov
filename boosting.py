@@ -31,63 +31,52 @@ y_test = Y[n::]
 
 m = len(y_test)
 
-print x_train.shape
-print y_train.shape
-
-print x_test.shape
-print y_test.shape
-
 # Prediction algorithms
-gbr = GradientBoostingRegressor(loss='ls',
-                                n_estimators=20,
-                                learning_rate=0.1,
-                                max_depth=10,
-                                subsample=0.8,
-                                verbose=10)
+gbr = GradientBoostingRegressor()
 
-# # Performing a grid search to get the best parameters
-# # May take some time
-# grid = dict(loss=['ls'],
-#             n_estimators=np.arange(5, 50, 5),
-#             learning_rate=np.linspace(0.01, 0.1, num=10),
-#             max_depth=range(1, 10),
-#             subsample=np.linspace(0.01, 1.0, num=10),
-#             verbose=[False])
+# Performing fast a grid search to get the best parameters
+# The grid search can be improved modifying the extrem values and
+# step values in the ranges below
+grid = dict(loss=['ls'],
+            n_estimators=np.arange(5, 50, 5),
+            learning_rate=np.linspace(0.01, 0.1, num=5),
+            max_depth=range(1, 5),
+            subsample=np.linspace(0.01, 1.0, num=5),
+            verbose=[False],
+            random_state=[0])
 
-# gd = GridSearchCV(gbr, param_grid=grid, cv=5, scoring='mean_squared_error')
-# gd.fit(x_train, y_train)
+gd = GridSearchCV(gbr, param_grid=grid, cv=5, scoring='mean_squared_error')
+gd.fit(x_train, y_train)
 
-# print("Best parameters set found on development set:")
-# print()
-# print(gd.best_estimator_)
+print("Best set of parameters:")
+best_params = gd.best_estimator_.get_params()
+for param_name in sorted(grid.keys()):
+    print("\t%s: %r" % (param_name, best_params[param_name]))
 
-# best = gd.best_estimator_
-# best.fit(x_train, y_train)
-# y_best = best.predict(x_test)
+best = gd.best_estimator_
+best.fit(x_train, y_train)
+y_best = best.predict(x_test)
 
 # interactive plot
-
-
 fig, ax = plt.subplots()
 plt.subplots_adjust(left=0.25, bottom=0.4)
 t = np.arange(0.0, 1.0, 0.001)
 time = range(0, m)
 plt.plot(time, y_test, 'o-', color="r",
          label="True", linewidth=2.0)
-# plt.plot(time, y_best, 'o-', color="g",
-#          label="Best", linewidth=2.0)
 
 # initial parameters
-n0 = 10
-lr0 = 0.1
-md0 = 3
-sb0 = 1.0
+n0 = best_params['n_estimators']
+lr0 = best_params['learning_rate']
+md0 = best_params['max_depth']
+sb0 = best_params['subsample']
 p0 = dict(loss='ls',
           n_estimators=n0,
           learning_rate=lr0,
           max_depth=md0,
           subsample=sb0,
-          verbose=False)
+          verbose=False,
+          random_state=0)
 gbr.set_params(**p0)
 gbr.fit(x_train, y_train)
 y_pred = gbr.predict(x_test)
@@ -123,7 +112,8 @@ def update(val):
              learning_rate=lr,
              max_depth=md,
              subsample=sb,
-             verbose=False)
+             verbose=False,
+             random_state=0)
     gbr.set_params(**p)
     gbr.fit(x_train, y_train)
     y_pred = gbr.predict(x_test)
@@ -148,4 +138,7 @@ def reset(event):
     ssb.reset()
 button.on_clicked(reset)
 
+fig.text(0.57, 0.94, 'Influence of GBR parameters on prediction',
+         horizontalalignment='center',
+         fontsize=20)
 plt.show()
