@@ -12,7 +12,8 @@ import matplotlib.pyplot as plt
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.grid_search import GridSearchCV
 from matplotlib.widgets import Slider, Button
-
+from sklearn.metrics import mean_squared_error
+from matplotlib import gridspec
 
 # Loading data
 json_data = open('data.json').read()
@@ -39,9 +40,9 @@ gbr = GradientBoostingRegressor()
 # step values in the ranges below
 grid = dict(loss=['ls'],
             n_estimators=np.arange(5, 50, 5),
-            learning_rate=np.linspace(0.01, 0.1, num=5),
+            learning_rate=np.linspace(0.01, 0.1, num=10),
             max_depth=range(1, 5),
-            subsample=np.linspace(0.01, 1.0, num=5),
+            subsample=np.linspace(0.01, 1.0, num=10),
             verbose=[False],
             random_state=[0])
 
@@ -56,14 +57,20 @@ for param_name in sorted(grid.keys()):
 best = gd.best_estimator_
 best.fit(x_train, y_train)
 y_best = best.predict(x_test)
+mse_best = mean_squared_error(y_test, y_best)
 
 # interactive plot
-fig, ax = plt.subplots()
-plt.subplots_adjust(left=0.25, bottom=0.4)
+fig = plt.figure(figsize=(8, 6))
+gs = gridspec.GridSpec(1, 2, width_ratios=[3, 1])
+
+fig.subplots_adjust(left=0.25, bottom=0.4)
+ax1 = plt.subplot(gs[0])
 t = np.arange(0.0, 1.0, 0.001)
 time = range(0, m)
-plt.plot(time, y_test, 'o-', color="r",
+ax1.plot(time, y_test, 'o-', color="r",
          label="True", linewidth=2.0)
+ax0 = plt.subplot(gs[1])
+ax0.bar(0.75, mse_best, width=0.5, color="k")
 
 # initial parameters
 n0 = best_params['n_estimators']
@@ -82,8 +89,14 @@ gbr.fit(x_train, y_train)
 y_pred = gbr.predict(x_test)
 
 # initial plot
-l, = plt.plot(time, y_pred, 'o-', color="b",
+l, = ax1.plot(time, y_pred, 'o-', color="b",
               label="Pred", linewidth=2.0)
+m, = ax0.bar(1.75, mse_best, width=0.5, color="b")
+
+ax0.set_xticks([0, 1, 2, 3])
+ax0.set_xticklabels(['', 'mse*', 'mse'], rotation=45)
+ax0.set_yticks(np.linspace(0, 3, 10))
+ax0.yaxis.tick_right()
 
 # sliders positions
 axcolor = 'lightgoldenrodyellow'
@@ -117,7 +130,9 @@ def update(val):
     gbr.set_params(**p)
     gbr.fit(x_train, y_train)
     y_pred = gbr.predict(x_test)
+    mse = mean_squared_error(y_test, y_pred)
     l.set_ydata(y_pred)
+    m.set_height(mse)
     fig.canvas.draw_idle()
 snest.on_changed(update)
 slr.on_changed(update)
