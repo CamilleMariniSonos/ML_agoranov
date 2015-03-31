@@ -42,7 +42,7 @@ grid = dict(loss=['ls'],
             n_estimators=np.arange(5, 50, 5),
             learning_rate=np.linspace(0.01, 0.1, num=10),
             max_depth=range(1, 5),
-            subsample=np.linspace(0.01, 1.0, num=10),
+            subsample=np.linspace(0.1, 1.0, num=10),
             verbose=[False],
             random_state=[0])
 
